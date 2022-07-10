@@ -92,6 +92,7 @@ class SonicPipe():
             if 0 <= index <= len(self._history):
                 print(f"[{index}] ({self._history[index].date}): {self._history[index].code}")
 
+        # TODO: this command is broken. Fix it.
         if command_length == 3 and all(n.isnumeric() for n in split[1:]):
             for item in self._history[int(split[1]):int(split[2] ) + 1]:
                 print(f"[{self._history.index(item)}] ({item.date}): {item.code}")
@@ -114,7 +115,7 @@ class SonicPipe():
                     self.print_history(prompt)
 
                 if prompt == "save_history":
-                    self.save_history()
+                    self.save_history(on_quit=False)
 
                 # stop Sonic Pi jobs
                 if prompt in ["stop", "stop-all-jobs"]:
