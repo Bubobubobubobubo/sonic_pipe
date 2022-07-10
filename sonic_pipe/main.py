@@ -110,9 +110,13 @@ class SonicPipe():
                 if prompt in ["exit", "quit", "exit()", "quit()"]:
                     quit()
 
+                if prompt == "purge-history":
+                    self.purge_history()
+
                 # search last commands history
                 if prompt.startswith("history"):
                     self.print_history(prompt)
+
 
                 if prompt == "save_history":
                     self.save_history(on_quit=False)
@@ -196,6 +200,17 @@ class SonicPipe():
         with open(folder + f'{sessionname}.rb', 'w') as f:
             for line in self._history:
                 f.write("%s\n" % line.code)
+
+    def purge_history(self):
+        """ Purge history of sessions """
+        folder = self._home_dir + "/.sonic-pi/sonic_pipe_sessions/"
+        if os.path.isdir(folder):
+            for file in os.listdir(folder):
+                print(f"{file} ... REMOVED.")
+                os.remove(os.path.join(folder, file))
+            print("Session History has been cleaned.")
+        else:
+            print("There is nothing to purge.")
 
 
 def main():

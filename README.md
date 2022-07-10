@@ -10,7 +10,15 @@ The script is a proof of concept based on information gathered from the [Sonic P
 
 ## Usage
 
-The script requires **python-osc**. Once installed, simply run the main script `python3 sonic_pipe` or directly `python3 sonic_pipe/main.py` to start the barebones REPL.
+The script requires **python-osc** and the **blessings** library. Once installed, simply run the main script `python3 sonic_pipe` or directly `python3 sonic_pipe/main.py` to start the barebones REPL. As such, you will notice that the REPL is not that useful!
+
+For now (things will evolve for sure), the script was designed to be used along a *slime* session using Vim/Neovim. Open a new terminal, start the script and pipe your code to the REPL with just a keypress!
+
+Basic commands are available:
+* **stop** : stop Sonic Pi Server.
+* **quit**/**exit** : exit the script.
+* **history** : see below.
+* **purge-history** : delete history.
 
 ## Session History
 
@@ -19,3 +27,4 @@ You can save a snapshot of the ongoing session by typing `save_history`. You can
 * `history x`: print the xth command entered since start.
 * `history x y`: print history from x to y.
 
+A new file will be written in your `.sonic-pi/sonic_pipe_sessions/` folder. Sessions are named using the current time. Sessions are saved by default on exit, using the `[date]-endofsession` tag. This will ensure that you always keep an history of your code during improvisations. The `purge-history` command can be used to purge the `sonic_pipe_sessions` folder.
