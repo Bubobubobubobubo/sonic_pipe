@@ -21,11 +21,18 @@ class HistoryItem:
 
 class SonicPipe():
 
+    """ 
+    SonicPipe is a tool made to pipe strings from the terminal 
+    to a running Sonic Pi session. It allows you to use Sonic Pi
+    from outside the default IDE (Vim/Neovim/Emacs/etc).
+    """
+
     def __init__(self, address='127.0.0.1', port=4560):
 
         self._token, self._values = (None, None)
         self._address, self._port = address, port
         self._terminal = Terminal()
+        st = self._terminal.standout
 
         self._home_dir = os.path.expanduser('~')
 
@@ -35,11 +42,11 @@ class SonicPipe():
         # Gather required information for piping strings accross
         try:
             self.find_address_and_token()
-            print(
-                    self._terminal.bold_red_on_bright_green(
-                        f"Sonic Pipe ({VERSION})\nToken: {self._token}"))
-            print(f"--> [{self._terminal.bold} quit/exit]{self._terminal.normal}: exit REPL")
-            print(f"--> [{self._terminal.bold} stop]: {self._terminal.normal} stop Sonic Pi exec.")
+            print("=-"*10)
+            print(f"Sonic Pipe ({VERSION})\nToken: {self._token}")
+            print("=-"*10)
+            print(f"{st('quit/exit:')} exit CLI.\n{st('stop:')} stop Sonic Pi.")
+            print(f"{st('(purge-)history:')}\nsave/purge history")
         except Exception as e:
             print(f"Couldn't fetch into spider.log: {e}")
             quit()
