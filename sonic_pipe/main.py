@@ -1,13 +1,22 @@
 #!/usr/local/bin/python3
 # -*- coding: utf-8 -*-
-import os
-import sys
+
 import contextlib
 import argparse
+import os
+import time
 from pythonosc import (udp_client, osc_message_builder)
 from inputimeout import inputimeout, TimeoutOccurred
 from blessings import Terminal
+from dataclasses import dataclass
+from typing import Any
+
 VERSION = '0.0.1'
+
+@dataclass
+class HistoryItem:
+    date: Any = None,
+    code: str = '' 
 
 
 class SonicPipe():
@@ -44,9 +53,8 @@ class SonicPipe():
         except Exception as e:
             print(f"Failed to instantiate OSC server: {e}")
 
-    def input_without_newline(self,
-                              prompt_decoration: str = "",
-                              timeout: float = 0.1):
+    def input_without_newline(
+        self, prompt_decoration: str = "", timeout: float = 0.1):
         with contextlib.redirect_stdout(open(os.devnull, 'w')):
             line = inputimeout(prompt=prompt_decoration, timeout=0.1)
         return line
@@ -64,8 +72,29 @@ class SonicPipe():
         if inputlist == []:
             return None
         else:
-            self._history.append(final_output)
+            # self._history.append(final_output)
+            self._history.append(
+                HistoryItem(date=time.strftime("%H:%M:%S"),
+                            code=final_output))
             return '\n'.join(inputlist)
+
+    def print_history(self, prompt):
+        """ Print history of commands """
+        split = prompt.split(" ")
+        command_length = len(split)
+
+        if prompt == "history":
+            for index, item in enumerate(self._history):
+                print(f"[{index}] ({item.date}): {item.code}")
+
+        if command_length == 2 and split[1].isnumeric():
+            index = int(split[1])
+            if 0 <= index <= len(self._history):
+                print(f"[{index}] ({self._history[index].date}): {self._history[index].code}")
+
+        if command_length == 3 and all(n.isnumeric() for n in split[1:]):
+            for item in self._history[int(split[1]):int(split[2] ) + 1]:
+                print(f"[{self._history.index(item)}] ({item.date}): {item.code}")
 
     def pipe_to_sonic_pi(self, pipe_client):
         """ Pipe to send messages to Sonic Pi """
@@ -82,16 +111,7 @@ class SonicPipe():
 
                 # search last commands history
                 if prompt.startswith("history"):
-                    split = prompt.split(" ")
-                    command_length = len(split)
-                    if prompt == "history":
-                        for (i, z) in zip(self._history,
-                                          range(len(self._history))):
-                            print(f"[{z}]: {i}")
-                    if command_length == 2 and split[1].isnumeric():
-                        index = int(split[1])
-                        if index <= len(self._history):
-                            print(f"[{index}]: {self._history[index]}")
+                    self.print_history(prompt)
 
                 if prompt == "save_history":
                     self.save_history()
@@ -111,27 +131,12 @@ class SonicPipe():
                     self._pipe_client.send(message.build())
 
         except KeyboardInterrupt:
-            self.save_history()
+            self.save_history(on_quit=True)
             message = osc_mb.OscMessageBuilder("/stop-all-jobs")
             message.add_arg(int(self._token))
             self._pipe_client.send(message.build())
             print("\nThanks! Bye!")
             quit()
-
-    def is_user_directory_path_valid(self, home_path) -> bool:
-        """ Is given user directory folder valid? """
-        exists = os.path.isdir(self._home_dir)
-        exists_message = (
-                f"[{self._home_dir}]: [{'Exists' if exists else 'Not found'}] | ")
-        contains = os.path.isdir(
-                self._home_dir+"/.sonic-pi/log/")
-        contains_message = (
-                f"[Spider logs]: [{'Exists' if contains else 'Not found'}]")
-        print(exists_message + contains_message)
-        if exists and contains:
-            return True
-        else:
-            raise FileNotFoundError
 
     def extract_values_from_port_line(self, portline):
         """ Extract token and values from port line """
@@ -143,8 +148,10 @@ class SonicPipe():
             return zip(a, a)
 
         # list of string replacements to perform
-        to_replace = ["Ports: {", "", "}", "", "\n", "", ":", " ",
-                      ",", " ", "=>", " "]
+        to_replace = [
+            "Ports: {", "", "}", 
+            "", "\n", "", ":", " ",
+            ",", " ", "=>", " "]
 
         for token, replacer in pairwise(to_replace):
             portline = portline.replace(token, replacer)
@@ -174,12 +181,20 @@ class SonicPipe():
                 port_line)
         self._token = int(token_line.replace("Token: ", ""))
 
-    def save_history(self):
+    def save_history(self, on_quit: bool):
         """ Save history of current session to last_session.rb """
-        # Increment filename if file already exists
-        with open(self._home_dir + '/last_session.rb', 'w') as f:
+        # Create folder if folder doesn't exist yet
+        folder = self._home_dir + "/.sonic-pi/sonic_pipe_sessions/"
+        if not on_quit:
+            sessionname = time.strftime("%H%M%S") 
+        else:
+            sessionname = time.strftime("%H%M%S"+"-endofsession") 
+        if not os.path.isdir(folder):
+            os.mkdir(folder)
+
+        with open(folder + f'{sessionname}.rb', 'w') as f:
             for line in self._history:
-                f.write("%s\n" % line)
+                f.write("%s\n" % line.code)
 
 
 def main():
