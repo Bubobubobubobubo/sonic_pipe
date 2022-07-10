@@ -1,6 +1,6 @@
 # Sonic Pipe
 
-[screenshot](sonic_pipe_screenshot.png)
+![screenshot](sonic_pipe_screenshot.png)
 
 /!\ Beware, things are moving fast rn. 
 
