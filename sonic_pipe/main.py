@@ -1,10 +1,10 @@
 #!/usr/local/bin/python3
 # -*- coding: utf-8 -*-
-
 import os
 import argparse
+import signal
 from pythonosc import (udp_client, osc_message_builder)
-
+from inputimeout import inputimeout, TimeoutOccurred
 
 class SonicPipe():
 
@@ -39,17 +39,30 @@ class SonicPipe():
         except Exception as e:
             print(f"Failed to instantiate OSC server: {e}")
 
+    def input_multiline(self, prompt_decoration: str = "") -> str:
+        timeout, inputlist = 0.1, []
+        while True:
+            try:
+                line = inputimeout(prompt=prompt_decoration, timeout=1)
+                if line != '':
+                    inputlist.append(line)
+            except TimeoutOccurred:
+                break
+        return '\n'.join(inputlist)
+
     def pipe_to_sonic_pi(self, pipe_client):
         """ Pipe to send messages to Sonic Pi """
         while True:
-            prompt = input("> ")
+            prompt = self.input_multiline()
             if prompt in ["exit", "quit", "exit()", "quit()"]:
                 quit()
             message = osc_message_builder.OscMessageBuilder("/run-code")
             message.add_arg(int(self._token))
             message.add_arg(prompt)
+            print(prompt)
             message = message.build()
-            self._pipe_client.send(message)
+            if any(c.isalpha() for c in prompt):
+                self._pipe_client.send(message)
 
     def is_user_directory_path_valid(self, home_path) -> bool:
         """ Is given user directory folder valid? """

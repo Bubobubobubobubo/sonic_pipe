@@ -7,4 +7,6 @@ setup(name='sonic_pipe',
       author='Raphaël Forment',
       author_email='raphael.forment@gmail.com',
       url='',
-      install_requires=['python-osc'])
+      install_requires=[
+            'python-osc',
+            'inputimeout'])
