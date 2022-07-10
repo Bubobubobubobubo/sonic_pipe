@@ -2,7 +2,8 @@
 
 ![screenshot](sonic_pipe_screenshot.png)
 
-/!\ Beware, things are moving fast rn. 
+/!\ Beware, things are moving fast rn. /!\ 
+
 
 I couldn't wait for a new version of [sonic-pi-cli](https://github.com/Widdershin/sonic-pi-cli) or [sonic-pi-tool](https://github.com/lpil/sonic-pi-tool) following the release of Sonic Pi 4.0 so I quickly hacked a script that allows strings to be piped from the command line to the Sonic Pi Server.
 
@@ -28,3 +29,9 @@ You can save a snapshot of the ongoing session by typing `save_history`. You can
 * `history x y`: print history from x to y.
 
 A new file will be written in your `.sonic-pi/sonic_pipe_sessions/` folder. Sessions are named using the current time. Sessions are saved by default on exit, using the `[date]-endofsession` tag. This will ensure that you always keep an history of your code during improvisations. The `purge-history` command can be used to purge the `sonic_pipe_sessions` folder.
+
+# TODO
+
+* Package as a CLI.
+* Allow one-shot usage from the command-line.
+
