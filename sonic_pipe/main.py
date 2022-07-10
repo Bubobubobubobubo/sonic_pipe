@@ -52,17 +52,26 @@ class SonicPipe():
 
     def pipe_to_sonic_pi(self, pipe_client):
         """ Pipe to send messages to Sonic Pi """
+        osc_mb = osc_message_builder
         while True:
             prompt = self.input_multiline()
+
+            # exit REPL if needed
             if prompt in ["exit", "quit", "exit()", "quit()"]:
                 quit()
-            message = osc_message_builder.OscMessageBuilder("/run-code")
+
+            # stop Sonic Pi jobs
+            if prompt in ["stop", "stop-all-jobs"]:
+                message = osc_mb.OscMessageBuilder("/stop-all-jobs")
+                message.add_arg(int(self._token))
+                self._pipe_client.send(message.build())
+
+            # Other messages
+            message = osc_mb.OscMessageBuilder("/run-code")
             message.add_arg(int(self._token))
             message.add_arg(prompt)
-            print(prompt)
-            message = message.build()
             if any(c.isalpha() for c in prompt):
-                self._pipe_client.send(message)
+                self._pipe_client.send(message.build())
 
     def is_user_directory_path_valid(self, home_path) -> bool:
         """ Is given user directory folder valid? """
