@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
+import contextlib
 import argparse
 from pythonosc import (udp_client, osc_message_builder)
 from inputimeout import inputimeout, TimeoutOccurred
@@ -46,10 +47,8 @@ class SonicPipe():
     def input_without_newline(self,
                               prompt_decoration: str = "",
                               timeout: float = 0.1):
-        sys.__stdout__, sys.__stderr__ = sys.stdout, sys.stderr
-        sys.stdout = open(os.devnull, 'w+')
-        line = inputimeout(prompt=prompt_decoration, timeout=0.1)
-        sys.stdout, sys.stderr = sys.__stdout__, sys.__stderr__
+        with contextlib.redirect_stdout(open(os.devnull, 'w')):
+            line = inputimeout(prompt=prompt_decoration, timeout=0.1)
         return line
 
     def input_multiline(self, prompt_decoration: str = "") -> str:
@@ -81,9 +80,18 @@ class SonicPipe():
                 if prompt in ["exit", "quit", "exit()", "quit()"]:
                     quit()
 
-                if prompt == "history":
-                    for (i, z) in zip(self._history, range(len(self._history))):
-                        print(f"[{z}]: {i}")
+                # search last commands history
+                if prompt.startswith("history"):
+                    split = prompt.split(" ")
+                    command_length = len(split)
+                    if prompt == "history":
+                        for (i, z) in zip(self._history,
+                                          range(len(self._history))):
+                            print(f"[{z}]: {i}")
+                    if command_length == 2 and split[1].isnumeric():
+                        index = int(split[1])
+                        if index <= len(self._history):
+                            print(f"[{index}]: {self._history[index]}")
 
                 if prompt == "save_history":
                     self.save_history()
