@@ -132,7 +132,8 @@ class SonicPipe():
         else:
             match user_os:
                 case 'Windows':
-                    return "blabla"
+                    # I don't have a Windows Computer to verify 
+                    return "C:/Program\\ Files/Sonic\\ Pi/app/server/ruby/bin/daemon.rb"
                 case 'Linux':
                     return "blibli"
                 case 'Darwin':
