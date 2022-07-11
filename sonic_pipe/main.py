@@ -10,13 +10,42 @@ from inputimeout import inputimeout, TimeoutOccurred
 from blessings import Terminal
 from dataclasses import dataclass
 from typing import Any
+from platform import system
+
+def find_daemon_path():
+    user_os = system()
+    match user_os:
+        case 'Windows':
+            return "blabla"
+        case 'Linux': 
+            return "blibli"
+        case 'Darwin':
+            return '/Applications/Sonic\\ Pi.app/Contents/Resources/app/server/ruby/bin/daemon.rb'
 
 VERSION = '0.0.1'
+DAEMON_PATH = find_daemon_path()
 
 @dataclass
 class HistoryItem:
     date: Any = None,
     code: str = '' 
+
+@dataclass 
+class DaemonConfig:
+    server: int
+    gui: int
+    scsynth: int
+    scsynth_send: int
+    osc_cues: int
+    tau: int
+    tau_listen: int
+    token: int
+
+
+
+
+
+
 
 
 class SonicPipe():
@@ -27,8 +56,11 @@ class SonicPipe():
     from outside the default IDE (Vim/Neovim/Emacs/etc).
     """
 
-    def __init__(self, address='127.0.0.1', port=4560):
-
+    def __init__(self, address='127.0.0.1',
+                port=4560, use_daemon=False,
+                daemon_path=DAEMON_PATH):
+        self._ruby_daemon_path = DAEMON_PATH
+        self._use_daemon = use_daemon
         self._token, self._values = (None, None)
         self._address, self._port = address, port
         self._terminal = Terminal()
@@ -41,7 +73,11 @@ class SonicPipe():
 
         # Gather required information for piping strings accross
         try:
-            self.find_address_and_token()
+            if not self._use_daemon:
+                self.find_address_and_token()
+            else:
+                self.boot_daemon()
+
             print("=-"*10)
             print(f"Sonic Pipe ({VERSION})\nToken: {self._token}")
             print("=-"*10)
@@ -54,11 +90,15 @@ class SonicPipe():
         # Opening an OSC client and piping informations accross
         try:
             self._pipe_client = udp_client.SimpleUDPClient(
-                    self._address, int(self._values['server_port']))
-
+                    self._address, int(self._values.server))
             self.pipe_to_sonic_pi(self._pipe_client)
         except Exception as e:
             print(f"Failed to instantiate OSC server: {e}")
+
+    def boot_daemon(self):
+        command = f"ruby {self._ruby_daemon_path}"
+        alive_command = "/daemon/keep-alive" # every 2.5s
+        pass
 
     def input_without_newline(
         self, prompt_decoration: str = "", timeout: float = 0.1):
@@ -79,10 +119,8 @@ class SonicPipe():
         if inputlist == []:
             return None
         else:
-            # self._history.append(final_output)
-            self._history.append(
-                HistoryItem(date=time.strftime("%H:%M:%S"),
-                            code=final_output))
+            self._history.append(HistoryItem(date=time.strftime("%H:%M:%S"),
+                                            code=final_output))
             return '\n'.join(inputlist)
 
     def print_history(self, prompt):
@@ -115,6 +153,10 @@ class SonicPipe():
 
                 # exit REPL if needed
                 if prompt in ["exit", "quit", "exit()", "quit()"]:
+                    message = osc_mb.OscMessageBuilder("/stop-all-jobs")
+                    message.add_arg(int(self._token))
+                    self._pipe_client.send(message.build())
+                    print("\nThanks! Bye!")
                     quit()
 
                 if prompt == "purge-history":
@@ -191,7 +233,16 @@ class SonicPipe():
 
         self._values = self.extract_values_from_port_line(
                 port_line)
-        self._token = int(token_line.replace("Token: ", ""))
+        self._values = DaemonConfig(
+            server=self._values['server_port'],
+            gui=self._values['gui_port'],
+            scsynth=self._values['scsynth_port'],
+            scsynth_send=self._values['scsynth_send_port'],
+            osc_cues=self._values['osc_cues_port'],
+            tau=self._values['tau_port'],
+            tau_listen=self._values['listen_to_tau_port'],
+            token= int(token_line.replace("Token: ", "")))
+        self._token = self._values.token
 
     def save_history(self, on_quit: bool):
         """ Save history of current session to last_session.rb """

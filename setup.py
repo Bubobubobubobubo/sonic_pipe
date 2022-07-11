@@ -6,7 +6,12 @@ setup(name='sonic_pipe',
       description='Pipe code from command line to Sonic Pi 4.0 instance',
       author='Raphaël Forment',
       author_email='raphael.forment@gmail.com',
-      url='',
+      url='https://github.com/Bubobubobubobubo/sonic_pipe',
       install_requires=[
             'python-osc',
-            'inputimeout'])
+            'blessings',
+            'inputimeout'],
+      entry_points={'console_scripts': [
+          'slime = sonic_pipe.main:main']
+                }
+      )
