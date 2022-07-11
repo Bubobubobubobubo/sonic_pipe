@@ -237,6 +237,8 @@ class SonicPipe():
                     message = osc_mb.OscMessageBuilder("/stop-all-jobs")
                     message.add_arg(self._values.token)
                     self._pipe_client.send(message.build())
+                    if self._use_daemon:
+                        self._daemon.terminate()
                     print("\nThanks! Bye!")
                     quit()
 
@@ -258,8 +260,6 @@ class SonicPipe():
                     message = osc_mb.OscMessageBuilder("/stop-all-jobs")
                     message.add_arg(self._values.token)
                     self._pipe_client.send(message.build())
-                    if self._use_daemon:
-                        self._daemon.terminate()
 
                 message = osc_mb.OscMessageBuilder("/run-code")
                 message.add_arg(self._values.token)
