@@ -45,7 +45,7 @@ class SonicPipe():
     from outside the default IDE (Vim/Neovim/Emacs/etc).
     """
 
-    def __init__(self, address='127.0.0.1', port=4560, use_daemon=True,
+    def __init__(self, address='127.0.0.1', port=4560, use_daemon=False,
                  daemon_rb_location: str = None):
 
         ########################################
