@@ -53,7 +53,8 @@ class SonicPipe():
         ########################################
 
         try:
-            self._ruby_daemon_path = self.find_daemon_path(daemon_rb_location)
+            self._ruby_daemon_path = self.find_daemon_path(
+                    daemon_rb_location)
         except FileNotFoundError:
             print("Invalid path for daemon.rb file.")
             quit()
@@ -108,7 +109,7 @@ class SonicPipe():
                         self._address, int(self._values.daemon_keep_alive))
 
             self._pipe_client = udp_client.SimpleUDPClient(
-                    self._address, int(self._values.gui_listen_to_server))
+                    self._address, int(self._values.gui_send_to_server))
 
             self.pipe_to_sonic_pi(self._pipe_client)
         except Exception as e:
@@ -238,6 +239,9 @@ class SonicPipe():
                     print("\nThanks! Bye!")
                     quit()
 
+                if prompt == "debug":
+                    print(self._values)
+
                 if prompt == "purge-history":
                     self.purge_history()
 
@@ -355,8 +359,11 @@ class SonicPipe():
 def main():
     parser = argparse.ArgumentParser(
             description='Command line pipe to a running Sonic Pi Instance.')
+    parser.add_argument('daemon', type=int, nargs='+',
+                        help='run as daemon or using spider.log')
     arg = parser.parse_args()
-    runner = SonicPipe()
+    print(arg.daemon)
+    runner = SonicPipe(use_daemon=True if arg.daemon[0] == 1 else False)
 
 
 if __name__ == "__main__":
