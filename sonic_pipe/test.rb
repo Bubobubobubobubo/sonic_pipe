@@ -1,27 +1,23 @@
 load "/Users/bubo/ziffers/ziffers.rb"
+link
+set_link_bpm! 120
+use_midi_defaults port: "cable-loop-midi_5"
 
-live_loop :b do
-  use_synth :saw
-  zplay "0.25 0 1 2 4 5 9", amp: 0.25
-  zplay "0.25 2 4 4 8 9 12", amp: 0.25
-  zplay "0.25 0 1 2 4 5 0^248", amp: 0.25
-  zplay "0.25 2 4 4 8 9 02^59", amp: 0.25
+set_volume! 0.5
+
+live_loop :a do
+  use_synth :bass_foundation
+  play (ring 60,64,67,[60,72]).tick(:babp)
+  sleep (ring 0.25, 0.25).tick(:a)
 end
 
-live_loop :d, sync: :b do
-  sample :drum_bass_hard
-  sleep 0.5
+
+live_loop :b, sync: :a do
+  use_synth :bass_foundation
+  play (ring :f5, :e5, :a5).tick(:bipa)
+  sleep (ring 0.25, 0.25).tick(:a)
 end
 
-live_loop :e, sync: :b do
-  sample :drum_cymbal_closed
-  sleep 0.125
-  sample :drum_cymbal_closed
-  sleep 0.125
-  sample :drum_cymbal_closed
-  sleep 0.25
-  sample :drum_cymbal_closed
-  sleep 0.25
-end
+stop
 
-exit
+help_midi

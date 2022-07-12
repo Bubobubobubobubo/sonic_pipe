@@ -5,6 +5,9 @@ import contextlib
 import argparse
 import traceback
 import os
+from rich import print as rich_print
+from rich.console import Console
+from rich.markdown import Markdown
 import time
 from pythonosc import (udp_client, osc_message_builder,
                        dispatcher, osc_server)
@@ -313,16 +316,23 @@ class SonicPipe():
     def stop(self):
         """ Stop code from running in Sonic Pi """
         if self._pipe_client:
-            message = osc_mb.OscMessageBuilder("/stop-all-jobs")
+            message = osc_message_builder.OscMessageBuilder("/stop-all-jobs")
             message.add_arg(self._values.token)
+            self._pipe_client.send(message.build())
+
+    def set_initial_volume(self):
+        if self._pipe_client:
+            message = osc_message_builder.OscMessageBuilder("/run-code")
+            message.add_arg(self._values.token)
+            message.add_arg("set_volume! 0.8")
             self._pipe_client.send(message.build())
 
     def repl_mode_main_loop(self):
         """ Pipe to send messages to Sonic Pi """
         osc_mb = osc_message_builder
+        self.set_initial_volume()
         try:
             while True:
-
                 #####################
                 # KEEP DAEMON ALIVE #
                 #####################
@@ -363,11 +373,30 @@ class SonicPipe():
                     quit()
 
                 if prompt == "debug":
-                    print(self._values)
-                    print(self._logs.info)
+                    print("No debug mode")
+
+                if prompt == "synths":
+                    console = Console()
+                    with open('cheatsheets/allsynths.md', 'r') as file:
+                        console.print(Markdown(file.read()))
+
+                if prompt == "help_midi":
+                    console = Console()
+                    with open('cheatsheets/midi.md', 'r') as file:
+                        console.print(Markdown(file.read()))
+
+                if prompt == "help_link":
+                    console = Console()
+                    with open('cheatsheets/link.md', 'r') as file:
+                        console.print(Markdown(file.read()))
 
 
-                if prompt == "purge-history":
+                if prompt == "fxs":
+                    console = Console()
+                    with open('cheatsheets/allfxs.md', 'r') as file:
+                        console.print(Markdown(file.read()))
+
+                if prompt == "purge_history":
                     self.purge_history()
 
                 # search last commands history
@@ -383,12 +412,14 @@ class SonicPipe():
                     message.add_arg(self._values.token)
                     self._pipe_client.send(message.build())
 
-                message = osc_mb.OscMessageBuilder("/run-code")
-                message.add_arg(self._values.token)
-                message.add_arg(prompt)
-                if any(c.isalpha() for c in prompt):
-                    # print(self._terminal.flash())
-                    self._pipe_client.send(message.build())
+                if prompt not in ("stop", "stop-all-jobs", "save_history", "fxs",
+                                  "history", "purge_history", "synths", "debug",
+                                  "help_midi", "help_link"):
+                    message = osc_mb.OscMessageBuilder("/run-code")
+                    message.add_arg(self._values.token)
+                    message.add_arg(prompt)
+                    if any(c.isalpha() for c in prompt):
+                        self._pipe_client.send(message.build())
 
         except KeyboardInterrupt:
             self.save_history(on_quit=True)
