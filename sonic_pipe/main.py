@@ -8,13 +8,14 @@ import os
 import time
 import pty
 from pythonosc import (udp_client, osc_message_builder)
-from inputimeout import inputimeout, TimeoutOccurred
+from inputimeout import (inputimeout, TimeoutOccurred)
 from blessings import Terminal
 from dataclasses import dataclass
 from typing import Any
 from platform import system
 import subprocess
 from subprocess import PIPE
+import threading
 
 VERSION = '0.0.1'
 
@@ -45,8 +46,8 @@ class SonicPipe():
     from outside the default IDE (Vim/Neovim/Emacs/etc).
     """
 
-    def __init__(self, address='127.0.0.1', port=4560, use_daemon=False,
-                 daemon_rb_location: str = None):
+    def __init__(self, address='127.0.0.1', use_daemon=False,
+                 daemon_rb_location: str = None, repl_mode=True):
 
         ########################################
         # LOCATE DAEMON.RB FILE
@@ -66,11 +67,12 @@ class SonicPipe():
         ########################################
 
         self._values = None
-        self._address, self._port = address, port
+        self._address = address
         self._home_dir = os.path.expanduser('~')
 
         self._terminal = Terminal()
         st = self._terminal.standout
+        self._repl_mode = repl_mode
 
         # History Management
         self._history = []
@@ -111,10 +113,41 @@ class SonicPipe():
             self._pipe_client = udp_client.SimpleUDPClient(
                     self._address, int(self._values.gui_send_to_server))
 
-            self.pipe_to_sonic_pi(self._pipe_client)
+            if self._repl_mode:
+                self.repl_mode_main_loop()
+
         except Exception as e:
             print(f"Failure in Main Loop: {e}")
             print(traceback.format_exc())
+
+        ########################################
+        # OTHER USAGES POSSIBLE AFTER INIT     #
+        ########################################
+        # Need to keep-alive anyway, whatever happens
+        if self._use_daemon:
+            self.keep_alive_anyway()
+        else:
+            # We don't need to keep anything alive!
+            pass
+
+    def keep_alive_anyway(self):
+        """ Function to keep daemon alive outside of main loop """
+        osc_mb = osc_message_builder
+
+        def awake():
+            while self._keep_alive:
+                if self._daemon.poll() is not None:
+                    print("Daemon died! Daemon should stay alive")
+                    quit()
+                keep_alive = osc_mb.OscMessageBuilder("/daemon/keep-alive")
+                keep_alive.add_arg(self._values.token)
+                self._daemon_client.send(keep_alive.build())
+                time.sleep(0.2)
+
+        self._keep_alive = threading.Event()
+        self._alive_thread = threading.Thread(target=awake)
+        self._alive_thread.start()
+        print("Started keep alive dedicated thread.")
 
     def daemon_or_spider_mode_print(self):
         return ("[X] DAEMON [] SPIDER" if self._use_daemon
@@ -206,7 +239,24 @@ class SonicPipe():
             for item in self._history[int(split[1]):int(split[2] ) + 1]:
                 print(f"[{self._history.index(item)}] ({item.date}): {item.code}")
 
-    def pipe_to_sonic_pi(self, pipe_client):
+    def send(self):
+        """ Send a string for eval at Sonic Pi """
+        if self._pipe_client:
+            message = osc_mb.OscMessageBuilder("/run-code")
+            message.add_arg(self._values.token)
+            message.add_arg(prompt)
+            if any(c.isalpha() for c in prompt):
+                print(self._terminal.flash())
+                self._pipe_client.send(message.build())
+
+    def stop(self):
+        """ Stop code from running in Sonic Pi """
+        if self._pipe_client:
+            message = osc_mb.OscMessageBuilder("/stop-all-jobs")
+            message.add_arg(self._values.token)
+            self._pipe_client.send(message.build())
+
+    def repl_mode_main_loop(self):
         """ Pipe to send messages to Sonic Pi """
         osc_mb = osc_message_builder
         try:
@@ -358,13 +408,24 @@ class SonicPipe():
 
 
 def main():
+    def str2bool(v):
+        if isinstance(v, bool):
+            return v
+        if v.lower() in ('yes', 'true', 't', 'y', '1'):
+            return True
+        elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+            return False
+        else:
+            raise argparse.ArgumentTypeError('Boolean value expected.')
+
     parser = argparse.ArgumentParser(
             description='Command line pipe to a running Sonic Pi Instance.')
-    parser.add_argument('daemon', type=int, nargs='+',
-                        help='run as daemon or using spider.log')
+    parser.add_argument("--daemon", type=str2bool, nargs='?', const=True,
+                        default=False, help="Run as daemon.")
+    parser.add_argument("--repl", type=str2bool, nargs='?', const=True,
+                        default=False, help="Start as REPL.")
     arg = parser.parse_args()
-    print(arg.daemon)
-    runner = SonicPipe(use_daemon=True if arg.daemon[0] == 1 else False)
+    runner = SonicPipe(use_daemon=arg.daemon, repl_mode=arg.repl)
 
 
 if __name__ == "__main__":
