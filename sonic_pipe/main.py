@@ -3,24 +3,21 @@
 
 import contextlib
 import argparse
-from email.policy import default
-from re import S
 import traceback
 import os
 import time
-import pty
 from pythonosc import (udp_client, osc_message_builder,
                        dispatcher, osc_server)
 from inputimeout import (inputimeout, TimeoutOccurred)
 from dataclasses import dataclass, field
 from typing import Any, List
 from platform import system
+from art import tprint
 import subprocess
 from subprocess import PIPE
 import threading
 from queue import Queue
 
-VERSION = '0.0.1'
 
 class color:
     PURPLE = '\033[95m'
@@ -110,15 +107,8 @@ class SonicPipe():
             else:
                 self.boot_daemon()
 
-            print("=-"*10)
-            print(color.BOLD + f"Sonic Pipe ({VERSION})" + color.END)
-            print("Token: {self._values.token}")
-            print(f"OSC port: {self._values.gui_listen_to_server}")
-            print(self.daemon_or_spider_mode_print())
-            print("=-"*10)
-            print(f"quit/exit: exit CLI.")
-            print(f"stop: stop Sonic Pi.")
-            print(f"(purge-)history: save/purge history")
+            if self._repl_mode:
+                self.greeter()
         except Exception as e:
             print(f"Couldn't find token and server information: {e}")
             print(traceback.format_exc())
@@ -156,6 +146,13 @@ class SonicPipe():
             # We don't need to keep anything alive!
             pass
 
+    def greeter(self):
+        """ Greeter when booting the CLI as REPL """
+        tprint("Sonic Pipe", font="swan")
+        print(f"Token: {self._values.token} OSC port: {self._values.gui_listen_to_server}")
+        print(self.daemon_or_spider_mode_print())
+        print("See documentation on GitHub :')")
+
     def setup_log_server(self):
         """ Setting up the server to gether logs """
         # A dispatcher for OSC messages
@@ -169,7 +166,7 @@ class SonicPipe():
         self._dispatcher.map("/log/info", self.log_info_dispatcher)
         self._dispatcher.map("/log/multi_message", self.log_multi_message_dispatcher)
         self._dispatcher.map("/error", self.error_dispatcher)
-        # self._dispatcher.map("/syntax_error", self.syntax_error_dispatcher)
+        self._dispatcher.map("/syntax_error", self.syntax_error_dispatcher)
 
         # Starting the blocking server in another thread: dirty but it works!
         self._log_server_thread = threading.Thread(
@@ -183,15 +180,15 @@ class SonicPipe():
 
     def log_multi_message_dispatcher(self, address: str, fixed_argument: List[Any], *osc_arguments: List[Any]) -> None:
         """ Dealing with /log/info messages coming from the OSC server """
-        self._logs.put_nowait(color.GREEN + "".join(list(map(lambda x: str(x), osc_arguments))) + color.END)
+        self._logs.put_nowait(color.GREEN + " ".join(list(map(lambda x: str(x), osc_arguments))) + color.END)
 
     def error_dispatcher(self, address: str, fixed_argument: List[Any], *osc_arguments: List[Any]) -> None:
         """ Dealing with /error messages coming from the OSC server """
-        self._logs.put_nowait(color.RED + "".join(list(map(lambda x: str(x), osc_arguments))) + color.END)
+        self._logs.put_nowait(color.RED + " ".join(list(map(lambda x: str(x), osc_arguments))) + color.END)
 
-    # def syntax_error_dispatcher(self, address: str, fixed_argument: List[Any], *osc_arguments: List[Any]) -> None:
-    #     """ Dealing with /error messages coming from the OSC server """
-    #     self._logs.syntax_error.put(str(osc_arguments))
+    def syntax_error_dispatcher(self, address: str, fixed_argument: List[Any], *osc_arguments: List[Any]) -> None:
+        """ Dealing with /syntax_error messages coming from the OSC server """
+        self._logs.put_nowait(color.RED + " ".join(list(map(lambda x: str(x), osc_arguments))) + color.END)
 
     def keep_alive_anyway(self):
         """ Function to keep daemon alive outside of main loop """
@@ -213,8 +210,8 @@ class SonicPipe():
         print("Started keep alive dedicated thread.")
 
     def daemon_or_spider_mode_print(self):
-        return ("[X] DAEMON [] SPIDER" if self._use_daemon
-                else "[] DAEMON [X] SPIDER")
+        return ("[X] DAEMON          [] SPIDER" if self._use_daemon
+                else "[] DAEMON          [X] SPIDER")
 
     def find_daemon_path(self, user_provided: str = None):
         """ Find OS path to the daemon.rb file. """
