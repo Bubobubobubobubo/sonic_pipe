@@ -5,6 +5,11 @@ from queue import Queue
 
 
 class Logs():
+
+    """
+    Log Items. Deprecated.
+    """
+
     def __init__(self):
         self.info = Queue(maxsize=20)
         self.multi_message = Queue()

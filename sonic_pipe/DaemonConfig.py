@@ -6,6 +6,11 @@ from dataclasses import dataclass
 
 @dataclass
 class DaemonConfig:
+
+    """
+    Storing ports used by Sonic Pi daemon.rb or spider.log file.
+    """
+
     daemon_keep_alive: int
     gui_listen_to_server: int
     gui_send_to_server: int

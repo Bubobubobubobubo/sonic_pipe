@@ -1,24 +1,28 @@
 #!/usr/local/bin/python3
 # -*- coding: utf-8 -*-
 
+import os
 import contextlib
 import argparse
 import traceback
-import os
+import subprocess
+import threading
+
 from rich import print as rich_print
 from rich.console import Console
 from rich.markdown import Markdown
-import time
+from art import tprint
+
 from pythonosc import (udp_client, osc_message_builder,
                        dispatcher, osc_server)
 from inputimeout import (inputimeout, TimeoutOccurred)
+
 from dataclasses import dataclass, field
 from typing import Any, List
+
+from time import sleep, strftime
 from platform import system
-from art import tprint
-import subprocess
 from subprocess import PIPE
-import threading
 from queue import Queue
 
 from Utilities import (color, str2bool)
@@ -75,6 +79,7 @@ class SonicPipe():
             quit()
         self._use_daemon = use_daemon
         self._daemon = None
+        self._daemon_killed_by_user = False
 
         ########################################
         # DATA INIT
@@ -137,7 +142,7 @@ class SonicPipe():
         # OTHER USAGES POSSIBLE AFTER INIT     #
         ########################################
 
-        if self._use_daemon:
+        if self._use_daemon and not self._daemon_killed_by_user:
             # Whatever we do in daemon mode, we need to ping the service.
             self.keep_alive_anyway()
         else:
@@ -248,7 +253,7 @@ class SonicPipe():
                 keep_alive = osc_mb.OscMessageBuilder("/daemon/keep-alive")
                 keep_alive.add_arg(self._values.token)
                 self._daemon_client.send(keep_alive.build())
-                time.sleep(0.2)
+                sleep(0.2)
 
         self._keep_alive = threading.Event()
         self._alive_thread = threading.Thread(target=awake)
@@ -359,7 +364,7 @@ class SonicPipe():
             return None
         else:
             self._history.append(HistoryItem(
-                date=time.strftime("%Y:%b:%d:%H:%M:%S"),
+                date=strftime("%Y:%b:%d:%H:%M:%S"),
                 code=final_output))
             return '\n'.join(inputlist)
 
@@ -516,6 +521,7 @@ class SonicPipe():
                         self._pipe_client.send(message.build())
 
         except KeyboardInterrupt:
+            self._daemon_killed_by_user = True
             self.save_history(on_quit=True)
             message = osc_mb.OscMessageBuilder("/stop-all-jobs")
             message.add_arg(self._values.token)
@@ -598,9 +604,9 @@ class SonicPipe():
 
         folder = self._home_dir + "/.sonic-pi/sonic_pipe_sessions/"
         if not on_quit:
-            sessionname = time.strftime("%m%D%H%M%S")
+            sessionname = strftime("%H%M%S")
         else:
-            sessionname = time.strftime("%m%D%H%M%S"+"-endofsession")
+            sessionname = strftime("%H%M%S"+"-endofsession")
         if not os.path.isdir(folder):
             os.mkdir(folder)
 
