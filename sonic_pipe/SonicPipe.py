@@ -329,6 +329,14 @@ class SonicPipe():
 
                 self._daemon.stdout.flush()
 
+    def _exit_banner(self):
+
+        """
+        Display a small banner when ending the program
+        """
+
+        print(color.PURPLE + "\nThanks! Bye!" + color.END)
+
     def input_without_newline(self, prompt_decoration: str = "",
                               timeout: float = 0.1):
 
@@ -406,7 +414,7 @@ class SonicPipe():
             if any(c.isalpha() for c in prompt):
                 self._pipe_client.send(message.build())
 
-    def stop(self):
+    def stop_all_jobs(self):
 
         """
         Replicating Sonic Pi built-in /stop-all-jobs command.
@@ -431,6 +439,16 @@ class SonicPipe():
             message.add_arg(f"set_volume! {volume}")
             self._pipe_client.send(message.build())
 
+    def _send_keep_alive_message(self):
+
+        """
+        Format and send the keep alive message required by daemon.rb
+        """
+
+        keep_alive = osc_mb.OscMessageBuilder("/daemon/keep-alive")
+        keep_alive.add_arg(self._values.token)
+        self._daemon_client.send(keep_alive.build())
+
     def repl_mode_main_loop(self):
 
         """
@@ -449,9 +467,7 @@ class SonicPipe():
                     if self._daemon.poll() is not None:
                         print("Daemon died! Daemon should stay alive")
                         quit()
-                    keep_alive = osc_mb.OscMessageBuilder("/daemon/keep-alive")
-                    keep_alive.add_arg(self._values.token)
-                    self._daemon_client.send(keep_alive.build())
+                    self._send_keep_alive_message()
 
                 #####################
                 # PRINT LOGS        #
@@ -471,13 +487,11 @@ class SonicPipe():
                     continue
 
                 # exit REPL if needed
-                if prompt in ["exit", "quit", "exit()", "quit()"]:
-                    message = osc_mb.OscMessageBuilder("/stop-all-jobs")
-                    message.add_arg(self._values.token)
-                    self._pipe_client.send(message.build())
+                if prompt in ["exit", "quit"]:
+                    self.stop_all_jobs()
                     if self._use_daemon:
                         self._daemon.terminate()
-                    print(color.PURPLE + "\nThanks! Bye!" + color.END)
+                    self._exit_banner()
                     quit()
 
                 if prompt == "debug":
@@ -507,9 +521,7 @@ class SonicPipe():
 
                 # stop Sonic Pi jobs
                 if prompt in ["stop", "stop-all-jobs"]:
-                    message = osc_mb.OscMessageBuilder("/stop-all-jobs")
-                    message.add_arg(self._values.token)
-                    self._pipe_client.send(message.build())
+                    self.stop_all_jobs()
 
                 if prompt not in ("stop", "stop-all-jobs", "save_history", "fxs",
                                   "history", "purge_history", "synths", "debug",
@@ -523,12 +535,10 @@ class SonicPipe():
         except KeyboardInterrupt:
             self._daemon_killed_by_user = True
             self.save_history(on_quit=True)
-            message = osc_mb.OscMessageBuilder("/stop-all-jobs")
-            message.add_arg(self._values.token)
-            self._pipe_client.send(message.build())
+            self.stop_all_jobs()
             if self._use_daemon:
                 self._daemon.terminate()
-            print(color.PURPLE + "\nThanks! Bye!" + color.END)
+            self._exit_banner()
             quit()
 
     def extract_values_from_port_line(self, portline):
@@ -629,6 +639,3 @@ class SonicPipe():
             print("Session History has been cleaned.")
         else:
             print("There is nothing to purge.")
-
-
-
