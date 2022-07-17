@@ -21,23 +21,8 @@ from subprocess import PIPE
 import threading
 from queue import Queue
 
-
-class color:
-    PURPLE = '\033[95m'
-    CYAN = '\033[96m'
-    DARKCYAN = '\033[36m'
-    BLUE = '\033[94m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    RED = '\033[91m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-    END = '\033[0m'
-
-@dataclass
-class HistoryItem:
-    date: Any = None,
-    code: str = ''
+from Utilities import (color, str2bool)
+from History import HistoryItem
 
 
 @dataclass
@@ -51,20 +36,46 @@ class DaemonConfig:
     tau_phx: int
     token: int
 
+
 class Logs():
     def __init__(self):
-        self.info = Queue(maxsize= 20)
+        self.info = Queue(maxsize=20)
         self.multi_message = Queue()
         self.error = Queue()
         self.syntax_error = Queue()
-        
+
 
 class SonicPipe():
 
     """
     SonicPipe is a tool made to pipe strings from the terminal
-    to a running Sonic Pi session. It allows you to use Sonic Pi
-    from outside the default IDE (Vim/Neovim/Emacs/etc).
+    to a daemon session or already opened session of Sonic Pi.
+    You can use it along a Vim/Neovim Slime Session or as a
+    standard Python Library. The software is modal and can be
+    used in multiple ways:
+
+    - **daemon**:
+        - true: the script will attempt to boot Sonic Pi in the
+          background and hold the session open until the script
+          is terminated by sending "exit" or by pressing ^D.
+        - false: the script will attempt to find if a Sonic Pi
+          session is already running and find the right ports
+          and addresses to talk to it.
+    - **repl**:
+        - true: the current buffer will turn into a loop of
+          timeout controlled stdin queries. Every line received
+          will either be interpreted as Sonic Pi code or, for a
+          few reserved keywords, as an additional command made
+          available by Sonic Pipe.
+        - false: currently unavailable!
+
+    Sonic Pipe will attempt to log the history of every session.
+    Sessions can be found at $HOME/.sonic-pi/sonic-pipe-sessions.
+
+    An embedded help system running with Markdown files has been
+    added and can be accessed by various "help_x" methods. See
+    documentation for more information about this feature.
+
     """
 
     def __init__(self, address='127.0.0.1', use_daemon=False,
@@ -90,11 +101,7 @@ class SonicPipe():
         self._values = None
         self._address = address
         self._home_dir = os.path.expanduser('~')
-        # self._logs = Logs()
         self._logs = Queue()
-
-        # self._terminal = Terminal()
-        # st = self._terminal.standout
         self._repl_mode = repl_mode
 
         # History Management
@@ -106,14 +113,18 @@ class SonicPipe():
 
         try:
             if not self._use_daemon:
+                # running logs from spider.log
                 self.find_address_and_token()
             else:
+                # booting through the daemon.rb script
                 self.boot_daemon()
 
             if self._repl_mode:
+                # print some nice ascii art :)
                 self.greeter()
+
         except Exception as e:
-            print(f"Couldn't find token and server information: {e}")
+            print(f"Couldn't find token or boot: {e}")
             print(traceback.format_exc())
             quit()
 
@@ -133,68 +144,118 @@ class SonicPipe():
             self.setup_log_server()
 
             if self._repl_mode:
+                # entering infinite timeout of stdin queries.
                 self.repl_mode_main_loop()
 
         except Exception as e:
-            print(f"Failure in Main Loop: {e}")
+            print(f"Failure to finish initialization: {e}")
             print(traceback.format_exc())
 
         ########################################
         # OTHER USAGES POSSIBLE AFTER INIT     #
         ########################################
-        # Need to keep-alive anyway, whatever happens
+
         if self._use_daemon:
+            # Whatever we do in daemon mode, we need to ping the service.
             self.keep_alive_anyway()
         else:
             # We don't need to keep anything alive!
             pass
 
     def greeter(self):
-        """ Greeter when booting the CLI as REPL """
+
+        """
+        ASCII Art banner displayed when booting in REPL mode.
+        """
+
         tprint("Sonic Pipe", font="swan")
-        print(f"Token: {self._values.token} OSC port: {self._values.gui_listen_to_server}")
+        print(f"Token: {self._values.token} OSC port:\
+                {self._values.gui_listen_to_server}")
         print(self.daemon_or_spider_mode_print())
         print("See documentation on GitHub :')")
 
     def setup_log_server(self):
-        """ Setting up the server to gether logs """
+
+        """
+        Opening up a server to display Sonic Pi GUI
+        logs from the terminal.
+        """
+
         # A dispatcher for OSC messages
         self._dispatcher, self._dispatcher_lock = (
             dispatcher.Dispatcher(), threading.Lock())
         self._log_server = osc_server.BlockingOSCUDPServer(
-                ('127.0.0.1', int(self._values.gui_listen_to_server)), 
+                ('127.0.0.1', int(self._values.gui_listen_to_server)),
                 self._dispatcher)
 
-        # Setting up custom dispatchers for every type of information
-        self._dispatcher.map("/log/info", self.log_info_dispatcher)
-        self._dispatcher.map("/log/multi_message", self.log_multi_message_dispatcher)
-        self._dispatcher.map("/error", self.error_dispatcher)
-        self._dispatcher.map("/syntax_error", self.syntax_error_dispatcher)
+        # Setting up custom dispatchers for every type of information
+        self._dispatcher.map(
+                "/log/info", self.log_info_dispatcher)
+        self._dispatcher.map(
+                "/log/multi_message", self.log_multi_message_dispatcher)
+        self._dispatcher.map(
+                "/error", self.error_dispatcher)
+        self._dispatcher.map(
+                "/syntax_error", self.syntax_error_dispatcher)
 
-        # Starting the blocking server in another thread: dirty but it works!
+        # Starting the blocking server in another thread: dirty but it works!
         self._log_server_thread = threading.Thread(
             target=self._log_server.serve_forever)
         self._log_server_thread.daemon = True
         self._log_server_thread.start()
 
-    def log_info_dispatcher(self, address: str, fixed_argument: List[Any], *osc_arguments: List[Any]) -> None:
-        """ Dealing with /log/info messages coming from the OSC server """
-        self._logs.put_nowait(color.YELLOW + "\n".join(osc_arguments) + color.END)
+    def log_info_dispatcher(self, address: str,
+                            fixed_argument: List[Any],
+                            *osc_arguments: List[Any]) -> None:
 
-    def log_multi_message_dispatcher(self, address: str, fixed_argument: List[Any], *osc_arguments: List[Any]) -> None:
-        """ Dealing with /log/info messages coming from the OSC server """
-        self._logs.put_nowait(color.GREEN + " ".join(list(map(lambda x: str(x), osc_arguments))) + color.END)
+        """
+        Dealing with /log/info messages coming from the OSC server.
+        """
 
-    def error_dispatcher(self, address: str, fixed_argument: List[Any], *osc_arguments: List[Any]) -> None:
-        """ Dealing with /error messages coming from the OSC server """
-        self._logs.put_nowait(color.RED + " ".join(list(map(lambda x: str(x), osc_arguments))) + color.END)
+        self._logs.put_nowait(color.YELLOW + "\n".join(
+            osc_arguments) + color.END)
 
-    def syntax_error_dispatcher(self, address: str, fixed_argument: List[Any], *osc_arguments: List[Any]) -> None:
-        """ Dealing with /syntax_error messages coming from the OSC server """
-        self._logs.put_nowait(color.RED + " ".join(list(map(lambda x: str(x), osc_arguments))) + color.END)
+    def log_multi_message_dispatcher(self, address: str,
+                                     fixed_argument: List[Any],
+                                     *osc_arguments: List[Any]) -> None:
+
+        """
+        Dealing with /log/info messages coming from the OSC server.
+        """
+
+        self._logs.put_nowait(color.GREEN + " ".join(
+            list(map(lambda x: str(x), osc_arguments))) + color.END)
+
+    def error_dispatcher(self, address: str,
+                         fixed_argument: List[Any],
+                         *osc_arguments: List[Any]) -> None:
+
+        """
+        Dealing with /error messages coming from the OSC server
+        """
+
+        self._logs.put_nowait(color.RED + " ".join(
+            list(map(lambda x: str(x), osc_arguments))) + color.END)
+
+    def syntax_error_dispatcher(self, address: str,
+                                fixed_argument: List[Any],
+                                *osc_arguments: List[Any]) -> None:
+
+        """
+        Dealing with /syntax_error messages coming from the OSC server
+        """
+
+        self._logs.put_nowait(color.RED + " ".join(
+            list(map(lambda x: str(x), osc_arguments))) + color.END)
 
     def keep_alive_anyway(self):
-        """ Function to keep daemon alive outside of main loop """
+
+        """
+        This function will attempt to keep the daemon alive outside of
+        the main loop. This is to allow usage of the SonicPipe class in
+        a Python REPL or in any program not relying on the REPL mode.
+        """
+
         osc_mb = osc_message_builder
 
         def awake():
@@ -213,11 +274,21 @@ class SonicPipe():
         print("Started keep alive dedicated thread.")
 
     def daemon_or_spider_mode_print(self):
+
+        """
+        Cosmetic function to display current mode.
+        TODO: To be removed or replaced by something else.
+        """
+
         return ("[X] DAEMON          [] SPIDER" if self._use_daemon
                 else "[] DAEMON          [X] SPIDER")
 
     def find_daemon_path(self, user_provided: str = None):
-        """ Find OS path to the daemon.rb file. """
+
+        """
+        Find OS path to the daemon.rb file.
+        """
+
         user_os = system()
 
         if user_provided is not None:
@@ -226,17 +297,25 @@ class SonicPipe():
             else:
                 raise FileNotFoundError
         else:
+            # Linters can be quite lost using this new Python syntax.
             match user_os:
                 case 'Windows':
                     # I don't have a Windows Computer to verify 
                     return "C:/Program\\ Files/Sonic\\ Pi/app/server/ruby/bin/daemon.rb"
                 case 'Linux':
+                    print("Not implemented yet...")
+                    quit()
                     return "blibli"
                 case 'Darwin':
                     return '/Applications/Sonic\\ Pi.app/Contents/Resources/app/server/ruby/bin/daemon.rb'
 
     def boot_daemon(self):
-        """ Boot Sonic Pi Ruby Daemon and keep alive)"""
+
+        """
+        Boot Sonic Pi Ruby Daemon. Gather information from the daemon,
+        necessary for piping messages, receiving logs and keeping the
+        daemon.rb process alive!
+        """
 
         self._daemon = subprocess.Popen(
             f"ruby {self._ruby_daemon_path}",
@@ -245,8 +324,11 @@ class SonicPipe():
             for line in self._daemon.stdout:
                 if line != b'':
                     values = line.rstrip().decode('utf-8').split(" ")
-                    values = list(map(lambda x: int(x), values))
-
+                    try:
+                        values = list(map(lambda x: int(x), values))
+                    except Exception as e:
+                        print(f"Couldn't boot Sonic Pi Daemon: {e}")
+                        quit()
                     self._values = DaemonConfig(
                         daemon_keep_alive=values[0],
                         gui_listen_to_server=values[1],
@@ -262,12 +344,26 @@ class SonicPipe():
 
     def input_without_newline(self, prompt_decoration: str = "",
                               timeout: float = 0.1):
+
+        """
+        A very hacky function that will perform a timeout based stdin query.
+        For cosmetic reasons, stdin content will not be echoed to sdout by
+        temporarily disabling the latter. This is not great, but this is not
+        bad either I guess... The function seems to cause problems with other
+        libraries used to manipulate the terminal.
+        """
+
         with contextlib.redirect_stdout(open(os.devnull, 'w')):
             print("\n")
             line = inputimeout(prompt=prompt_decoration, timeout=0.1)
         return line
 
     def input_multiline(self, prompt_decoration: str = "") -> str:
+
+        """
+        Handling multiline input in REPL mode.
+        """
+
         inputlist = []
         while True:
             try:
@@ -281,10 +377,16 @@ class SonicPipe():
             return None
         else:
             self._history.append(HistoryItem(
-                date=time.strftime("%H:%M:%S"), code=final_output))
+                date=time.strftime("%Y:%b:%d:%H:%M:%S"),
+                code=final_output))
             return '\n'.join(inputlist)
 
-    def print_history(self, prompt):
+    def _print_history(self, prompt):
+
+        """
+        Inner function for the history command (see REPL above).
+        """
+
         """ Print history of commands """
         split = prompt.split(" ")
         command_length = len(split)
@@ -300,35 +402,54 @@ class SonicPipe():
 
         # TODO: this command is broken. Fix it.
         if command_length == 3 and all(n.isnumeric() for n in split[1:]):
-            for item in self._history[int(split[1]):int(split[2] ) + 1]:
+            for item in self._history[int(split[1]):int(split[2]) + 1]:
                 print(f"[{self._history.index(item)}] ({item.date}): {item.code}")
 
     def send(self):
-        """ Send a string for eval at Sonic Pi """
+
+        """
+        Generic function to send code from the terminal to Sonic Pi
+        through OSC.
+        """
+
         if self._pipe_client:
             message = osc_mb.OscMessageBuilder("/run-code")
             message.add_arg(self._values.token)
             message.add_arg(prompt)
             if any(c.isalpha() for c in prompt):
-                # print(self._terminal.flash() + "")
                 self._pipe_client.send(message.build())
 
     def stop(self):
+
+        """
+        Replicating Sonic Pi built-in /stop-all-jobs command.
+        """
+
         """ Stop code from running in Sonic Pi """
         if self._pipe_client:
             message = osc_message_builder.OscMessageBuilder("/stop-all-jobs")
             message.add_arg(self._values.token)
             self._pipe_client.send(message.build())
 
-    def set_initial_volume(self):
+    def set_initial_volume(self, volume=0.8):
+
+        """
+        Using this function, one can try to set Sonic Pi's default
+        volume at the beginning of the main loop.
+        """
+
         if self._pipe_client:
             message = osc_message_builder.OscMessageBuilder("/run-code")
             message.add_arg(self._values.token)
-            message.add_arg("set_volume! 0.8")
+            message.add_arg(f"set_volume! {volume}")
             self._pipe_client.send(message.build())
 
     def repl_mode_main_loop(self):
-        """ Pipe to send messages to Sonic Pi """
+
+        """
+        Main loop of the REPL mode.
+        """
+
         osc_mb = osc_message_builder
         self.set_initial_volume()
         try:
@@ -350,7 +471,7 @@ class SonicPipe():
                 #####################
                 while not self._logs.empty():
                     if self._logs.full():
-                        # If the queue is overflowing, don't loose time
+                        # If the queue is full, don't loose time
                         self._logs.queue.clear()
                     print("\n" + self._logs.get())
 
@@ -375,25 +496,16 @@ class SonicPipe():
                 if prompt == "debug":
                     print("No debug mode")
 
-                if prompt == "synths":
+                if prompt in ("synths", "help_midi", "help_link", "fxs",
+                              "help_ziffers"):
                     console = Console()
-                    with open('cheatsheets/allsynths.md', 'r') as file:
-                        console.print(Markdown(file.read()))
-
-                if prompt == "help_midi":
-                    console = Console()
-                    with open('cheatsheets/midi.md', 'r') as file:
-                        console.print(Markdown(file.read()))
-
-                if prompt == "help_link":
-                    console = Console()
-                    with open('cheatsheets/link.md', 'r') as file:
-                        console.print(Markdown(file.read()))
-
-
-                if prompt == "fxs":
-                    console = Console()
-                    with open('cheatsheets/allfxs.md', 'r') as file:
+                    help_map = {
+                            "synths": "cheatsheets/allsynths.md",
+                            "fxs": "cheatsheets/allfxs.md",
+                            "help_midi": "cheatsheets/midi.md",
+                            "help_link": "cheatsheets/link.md",
+                            "help_ziffers": "cheatsheets/ziffers.md"}
+                    with open(help_map[prompt], 'r') as file:
                         console.print(Markdown(file.read()))
 
                 if prompt == "purge_history":
@@ -401,7 +513,7 @@ class SonicPipe():
 
                 # search last commands history
                 if prompt.startswith("history"):
-                    self.print_history(prompt)
+                    self._print_history(prompt)
 
                 if prompt == "save_history":
                     self.save_history(on_quit=False)
@@ -414,7 +526,7 @@ class SonicPipe():
 
                 if prompt not in ("stop", "stop-all-jobs", "save_history", "fxs",
                                   "history", "purge_history", "synths", "debug",
-                                  "help_midi", "help_link"):
+                                  "help_midi", "help_link", "help_ziffers"):
                     message = osc_mb.OscMessageBuilder("/run-code")
                     message.add_arg(self._values.token)
                     message.add_arg(prompt)
@@ -432,7 +544,11 @@ class SonicPipe():
             quit()
 
     def extract_values_from_port_line(self, portline):
-        """ Extract token and values from port line """
+
+        """
+        Grab the message received from spider.log and interpret data.
+        """
+
         values = {}
 
         def pairwise(iterable):
@@ -458,7 +574,13 @@ class SonicPipe():
         return values
 
     def find_address_and_token(self):
-        """ Find address and token in the logs """
+
+        """
+        Reading the spider.log file to gather necessary ports and
+        addresses used by the script. This function is only used
+        for the spider.log method of booting.
+        """
+
         suffix = "/.sonic-pi/log/spider.log"
 
         port_line = None
@@ -484,13 +606,19 @@ class SonicPipe():
             token=abs(int(token_line.replace("Token: ", ""))))
 
     def save_history(self, on_quit: bool):
-        """ Save history of current session to last_session.rb """
+
+        """
+        Save an history of the current Sonic Pipe session. Every command
+        ever played will be recorded in the file. Sessions are name using
+        a timetag and an additionnal -endofsession flag for files automa-
+        tically saved at the end of each session.
+        """
 
         folder = self._home_dir + "/.sonic-pi/sonic_pipe_sessions/"
         if not on_quit:
-            sessionname = time.strftime("%H%M%S")
+            sessionname = time.strftime("%m%D%H%M%S")
         else:
-            sessionname = time.strftime("%H%M%S"+"-endofsession")
+            sessionname = time.strftime("%m%D%H%M%S"+"-endofsession")
         if not os.path.isdir(folder):
             os.mkdir(folder)
 
@@ -499,7 +627,12 @@ class SonicPipe():
                 f.write("%s\n" % line.code)
 
     def purge_history(self):
-        """ Purge history of sessions """
+
+        """
+        Clear out the folder of recorded sessions.
+        Destructive operation to be used with care.
+        """
+
         folder = self._home_dir + "/.sonic-pi/sonic_pipe_sessions/"
         if os.path.isdir(folder):
             for file in os.listdir(folder):
@@ -511,16 +644,6 @@ class SonicPipe():
 
 
 def main():
-    def str2bool(v):
-        if isinstance(v, bool):
-            return v
-        if v.lower() in ('yes', 'true', 't', 'y', '1'):
-            return True
-        elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-            return False
-        else:
-            raise argparse.ArgumentTypeError('Boolean value expected.')
-
     parser = argparse.ArgumentParser(
             description='Command line pipe to a running Sonic Pi Instance.')
     parser.add_argument("--daemon", type=str2bool, nargs='?', const=True,
