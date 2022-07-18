@@ -3,14 +3,6 @@ live_loop :a do
   sleep 0.5
 end
 
-debug
-
-history
-
-help
-
-save_history
-
 stop
 
 exit

@@ -62,10 +62,25 @@ class CommandParser():
             self._debug_commands[text]()
         elif text in self._help_commands:
             self._help_commands[text]()
-        elif text.startswith(tuple(self._history_commands.keys())):
+        elif text.split(" ")[0] in self._help_commands:
+            # Special case: a specific help file was required by user
+            try:
+                self._print_user_requested_help_file(text.split(" ")[1])
+            except Exception as e:
+                print(f"Help file '{text.split(' ')[1]}' does not exist. See list of help files above.\n")
+                self._show_available_cheatsheets()
+        elif text in self._history_commands:
             self._history_commands[text]() 
         else:
             self._forward_to_sonic_pi(text_to_parse=text_to_parse)
+
+    def _print_user_requested_help_file(self, file_to_open: str):
+        """
+        Attempt to print the help file requested by user in Markdown format.
+        """
+        cheat_path = "./cheatsheets/"
+        with open(cheat_path + file_to_open + '.md', "r") as markfile:
+            self._console.print(Markdown(markfile.read()))
 
     def _forward_to_sonic_pi(self, text_to_parse):
         message = osc_message_builder.OscMessageBuilder("/run-code")

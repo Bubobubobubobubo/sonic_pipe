@@ -3,21 +3,14 @@
 
 import os
 import contextlib
-import argparse
 import traceback
 import subprocess
 import threading
 
-from rich import print as rich_print
-from rich.console import Console
-from rich.markdown import Markdown
 from art import tprint
-
 from pythonosc import (udp_client, osc_message_builder,
                        dispatcher, osc_server)
 from inputimeout import (inputimeout, TimeoutOccurred)
-
-from dataclasses import dataclass, field
 from typing import Any, List
 
 from time import sleep, strftime
@@ -25,9 +18,8 @@ from platform import system
 from subprocess import PIPE
 from queue import Queue
 
-from Utilities import (color, str2bool)
+from Utilities import color
 from History import HistoryItem
-from Logs import Logs
 from DaemonConfig import DaemonConfig
 from CommandParsing import CommandParser
 
