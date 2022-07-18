@@ -21,9 +21,34 @@ I couldn't wait for a new version of [sonic-pi-cli](https://github.com/Widdershi
   2. `cd sonic_pipe`
   3. `pip install -e .` or `pip3 install -e .` depending on your Python installation.
 
-Required dependencies will be automatically installed. A CLI tool will be added to your path: `sonic-pipe`. In forward versions, you will also be able to import SonicPipe as a library for usage in your own Python programs.
+Required dependencies will be automatically installed. A CLI tool will be added to your path: `sonic-pipe`. In forward versions, you will also be able to import SonicPipe as a library for usage in your own Python programs. The rest of the installation process is dependent on the OS you are using. Please refer to the corresponding section.
 
-In order to use Sonic Pipe, you will need a tool able to pipe commands from a terminal buffer to another terminal buffer. I recommend using Vim/Neovim [Slime plugin](https://github.com/jpalardy/vim-slime). Very easy to setup and straightforward to use.
+### Windows
+
+Currently not tested and unsupported. However, this should work already! Please let me know if it doesn't!
+
+### Linux
+
+Please locate the `daemon.rb` file that comes installed with Sonic Pi. This file should be located in the `/server/bin` folder) not far from the actual `sonic-pi` binary. The path to `daemon.rb` can be given to `sonic-pipe` using the `--daemon-path` flag when executing the CLI.
+
+### MacOS
+
+`sonic-pipe` should work out of the box without additional configuration.
+
+### Connecting to sonic-pipe using Neovim
+
+In order to use Sonic Pipe, you will need a tool able to pipe commands from a terminal buffer to another terminal buffer. I recommend using Vim/Neovim [Slime plugin](https://github.com/jpalardy/vim-slime). Very easy to setup and straightforward to use. If you are using [vim.plug](https://github.com/junegunn/vim-plug), you can add the `slime` plugin like so:
+
+```vimscript
+call plug#begin()
+Plug 'jpalardy/vim-slime'
+call plug#end()
+```
+
+For convenience, please also add the following line to your `init.vim` or `.vimrc` file:
+```vimscript
+let g:slime_target = 'neovim'
+```
 
 ## Commands
 
