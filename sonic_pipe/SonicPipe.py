@@ -144,7 +144,7 @@ class SonicPipe():
             # We don't need to keep anything alive!
             pass
 
-    def _greeter(self):
+    def _greeter(self) -> None:
 
         """
         ASCII Art banner displayed when booting in REPL mode.
@@ -153,7 +153,7 @@ class SonicPipe():
         tprint("Sonic Pipe", font="swan")
         print("See documentation on GitHub :')")
 
-    def setup_log_server(self):
+    def setup_log_server(self) -> None:
 
         """
         Opening up a server to display Sonic Pi GUI
@@ -227,7 +227,7 @@ class SonicPipe():
         self._logs.put_nowait(color.RED + " ".join(
             list(map(lambda x: str(x), osc_arguments))) + color.END)
 
-    def keep_alive_anyway(self):
+    def keep_alive_anyway(self) -> None:
 
         """
         This function will attempt to keep the daemon alive outside of
@@ -252,7 +252,7 @@ class SonicPipe():
         self._alive_thread.start()
         print("Started keep alive dedicated thread.")
 
-    def find_daemon_path(self, user_provided: str = None):
+    def find_daemon_path(self, user_provided: str = None) -> str:
 
         """
         Find OS path to the daemon.rb file.
@@ -278,7 +278,7 @@ class SonicPipe():
                 case 'Darwin':
                     return '/Applications/Sonic\\ Pi.app/Contents/Resources/app/server/ruby/bin/daemon.rb'
 
-    def boot_daemon(self):
+    def boot_daemon(self) -> None:
 
         """
         Boot Sonic Pi Ruby Daemon. Gather information from the daemon,
@@ -311,7 +311,7 @@ class SonicPipe():
 
                 self._daemon.stdout.flush()
 
-    def input_without_newline(self, prompt_decoration: str = "", timeout: float = 0.1):
+    def input_without_newline(self, prompt_decoration: str = "", timeout: float = 0.1) -> str:
 
         """
         A very hacky function that will perform a timeout based stdin query.
@@ -349,7 +349,7 @@ class SonicPipe():
                 code=final_output))
             return '\n'.join(inputlist)
 
-    def set_initial_volume(self, volume=0.75):
+    def set_initial_volume(self, volume=0.75) -> None:
 
         """
         Using this function, one can try to set Sonic Pi's default
@@ -362,7 +362,7 @@ class SonicPipe():
             message.add_arg(f"set_volume! {volume}")
             self._pipe_client.send(message.build())
 
-    def _send_keep_alive_message(self):
+    def _send_keep_alive_message(self) -> None:
 
         """
         Format and send the keep alive message required by daemon.rb
@@ -372,7 +372,7 @@ class SonicPipe():
         keep_alive.add_arg(self._values.token)
         self._daemon_client.send(keep_alive.build())
 
-    def repl_mode_main_loop(self):
+    def repl_mode_main_loop(self) -> None:
 
         """
         Main loop of the REPL mode.
@@ -398,7 +398,6 @@ class SonicPipe():
 
                 while not self._logs.empty():
                     if self._logs.full():
-                        # If the queue is full, don't loose time
                         self._logs.queue.clear()
                     print("\n" + self._logs.get())
 
@@ -433,7 +432,7 @@ class SonicPipe():
         command_parser.parse(code)
 
 
-    def extract_values_from_port_line(self, portline):
+    def extract_values_from_port_line(self, portline) -> dict:
 
         """
         Grab the message received from spider.log and interpret data.
@@ -471,7 +470,7 @@ class SonicPipe():
 
         return values
 
-    def find_address_and_token(self):
+    def find_address_and_token(self) -> None:
 
         """
         Reading the spider.log file to gather necessary ports and
