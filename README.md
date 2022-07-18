@@ -8,11 +8,9 @@ I couldn't wait for a new version of [sonic-pi-cli](https://github.com/Widdershi
 
 ## TODO list
 
-* Control logs verbosity (less printing)
-* Restore Ableton Link functionality (??)
-* Subfolders for help system
-* Remove unused files
-* Make the script available for Windows (??)
+* Control logs verbosity (less printing).
+* Restore Ableton Link functionality (??).
+* connect with a custom vim/neovim plugin.
 
 ## Usage
 
