@@ -271,8 +271,7 @@ class SonicPipe():
                     # I don't have a Windows Computer to verify
                     return "C:/Program\\ Files/Sonic\\ Pi/app/server/ruby/bin/daemon.rb"
                 case 'Linux':
-                    print("Not implemented yet...")
-                    quit()
+                    return self._home_dir + '/sonic-pi/app/server/ruby/bin/daemon.rb'
                 case 'Darwin':
                     return '/Applications/Sonic\\ Pi.app/Contents/Resources/app/server/ruby/bin/daemon.rb'
 
