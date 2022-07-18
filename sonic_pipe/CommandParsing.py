@@ -6,6 +6,7 @@ from os.path import isfile, join
 from pythonosc import (osc_message_builder)
 from rich.console import Console
 from rich.markdown import Markdown
+from random import choice
 from time import strftime
 from queue import Queue
 from History import HistoryItem
@@ -110,7 +111,8 @@ class CommandParser():
         """
 
         folder = self._home_dir + "/.sonic-pi/sonic_pipe_sessions/"
-        sessionname = strftime("%H%M%S")
+
+        sessionname = strftime("%Y%m%d%H%M%S")
         if not os.path.isdir(folder):
             os.mkdir(folder)
 
@@ -161,6 +163,9 @@ class CommandParser():
             self._stop_all_jobs()
         if self._use_daemon:
             self._daemon.terminate()
+        
+        print("Autosaving on quit!")
+        self._save_history()
         quit()
 
     def _basic_debug(self):

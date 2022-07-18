@@ -416,7 +416,8 @@ class SonicPipe():
 
         except KeyboardInterrupt:
             self._daemon_killed_by_user = True
-            # TODO: Fix the autosaving on quit
+            print("Autosaving on quit!")
+            command_parser.parse("save_history")
             self.stop_all_jobs()
             if self._use_daemon:
                 self._daemon.terminate()
