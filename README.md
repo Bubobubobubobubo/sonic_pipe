@@ -50,6 +50,11 @@ For convenience, please also add the following line to your `init.vim` or `.vimr
 let g:slime_target = 'neovim'
 ```
 
+You are now good to go. Follow this quick tutorial to start your first Sonic Pipe session:
+1) start `neovim` and split the screen in two separate buffers (`:vs` or `:sp`).
+2) in one of the buffers, type `:terminal` to open a new embedded terminal.
+3) start Sonic Pipe: `sonic-pipe --daemon=True --repl=True`.
+
 ## Commands
 
 Some basic commands are available:
