@@ -39,7 +39,7 @@ Sonic Pipe includes an auto-save tool for your Sonic Pipe sessions. Sessions wil
 * **purge-history** : delete all files from history.
 * **save-history** : save the current Sonic Pipe session.
 
-## Help System
+## Help System
 
 Sonic Pipe includes an embedded documentation system that you can invoke directly from your playing buffer. Some help files are installed by default with the package. Your own help files can be added to SonicPipe by placing them in the `$HOME/.sonic-pi/sonic-pipe-help/` folder in the MarkDown format. This
 functionality is helpful to add custom documentation to your own libraries or to save code snippets that you wish to retrieve quickly.
