@@ -5,7 +5,7 @@ from os import listdir
 from os.path import isfile, join
 from queue import Queue
 from time import strftime
-from typing import List, Union
+from typing import List
 
 from pythonosc import osc_message_builder
 from rich.console import Console
@@ -20,10 +20,10 @@ class CommandParser():
     Parse the commands piped to the script.
     """
 
-    def __init__(self, logs: Queue, 
-                history: List[HistoryItem],
-                use_daemon: bool, token: int,
-                client_pipe, daemon):
+    def __init__(self, logs: Queue,
+                 history: List[HistoryItem],
+                 use_daemon: bool, token: int,
+                 client_pipe, daemon):
 
         self._quit_commands = {
             "exit": self._end_script}
@@ -36,8 +36,8 @@ class CommandParser():
             "help": self._show_available_cheatsheets}
         self._history_commands = {
             "history": self._print_history,
-            "save_history": self._save_history,
-            "purge_history": self._purge_history}
+            "save-history": self._save_history,
+            "purge-history": self._purge_history}
 
         self._console = Console()
         self._logs, self._history = (logs, history)
@@ -45,8 +45,9 @@ class CommandParser():
         self._client_pipe = client_pipe
         self._use_daemon, self._daemon = (use_daemon, daemon)
         self._token = token
-        self._cheat_path, self._user_cheat_path = (os.path.dirname(__file__) + "/cheatsheets/",
-                                                self._home_dir + "/.sonic-pi/sonic-pipe-help/")
+        self._cheat_path, self._user_cheat_path = (
+                os.path.dirname(__file__) + "/cheatsheets/",
+                self._home_dir + "/.sonic-pi/sonic-pipe-help/")
 
     def get_all_available_commands(self) -> List[str]:
 
@@ -56,7 +57,7 @@ class CommandParser():
 
         list = []
         for commands in [self._stop_commands, self._debug_commands,
-                        self._help_commands, self._history_commands]:
+                         self._help_commands, self._history_commands]:
             list.append(list(commands.keys()))
         return list
 
@@ -85,7 +86,7 @@ class CommandParser():
                 print(f"Help file '{text.split(' ')[1]}' does not exist. See list of help files above.\n")
                 self._show_available_cheatsheets()
         elif text in self._history_commands:
-            self._history_commands[text]() 
+            self._history_commands[text]()
         else:
             self._forward_to_sonic_pi(text_to_parse=text_to_parse)
 
@@ -175,7 +176,6 @@ class CommandParser():
             else:
                 return []
 
-        user_cheat_path = self._home_dir + "/.sonic-pi/sonic-pipe-help/"
         default_available_files = get_file_list(self._cheat_path)
         user_available_files = get_file_list(self._user_cheat_path)
 
@@ -218,7 +218,7 @@ class CommandParser():
             self._stop_all_jobs()
         if self._use_daemon:
             self._daemon.terminate()
-        
+
         print("Autosaving on quit!")
         self._save_history()
         quit()

@@ -58,7 +58,7 @@ class SonicPipe():
 
     """
 
-    def __init__(self, address='127.0.0.1', 
+    def __init__(self, address='127.0.0.1',
                 use_daemon=False,
                 daemon_rb_location: str = None,
                 repl_mode=False):
@@ -269,12 +269,11 @@ class SonicPipe():
             # Linters can be quite lost using this new Python syntax.
             match user_os:
                 case 'Windows':
-                    # I don't have a Windows Computer to verify 
+                    # I don't have a Windows Computer to verify
                     return "C:/Program\\ Files/Sonic\\ Pi/app/server/ruby/bin/daemon.rb"
                 case 'Linux':
                     print("Not implemented yet...")
                     quit()
-                    return "blibli"
                 case 'Darwin':
                     return '/Applications/Sonic\\ Pi.app/Contents/Resources/app/server/ruby/bin/daemon.rb'
 
@@ -311,7 +310,8 @@ class SonicPipe():
 
                 self._daemon.stdout.flush()
 
-    def input_without_newline(self, prompt_decoration: str = "", timeout: float = 0.1) -> str:
+    def input_without_newline(self, prompt_decoration: str = "",
+                              timeout: float = 0.1) -> str:
 
         """
         A very hacky function that will perform a timeout based stdin query.
@@ -368,7 +368,8 @@ class SonicPipe():
         Format and send the keep alive message required by daemon.rb
         """
 
-        keep_alive = osc_message_builder.OscMessageBuilder("/daemon/keep-alive")
+        keep_alive = osc_message_builder.OscMessageBuilder(
+                "/daemon/keep-alive")
         keep_alive.add_arg(self._values.token)
         self._daemon_client.send(keep_alive.build())
 
@@ -384,7 +385,7 @@ class SonicPipe():
             logs=self._logs,
             daemon=self._daemon,
             client_pipe=self._pipe_client,
-            use_daemon = self._use_daemon,
+            use_daemon=self._use_daemon,
             token=self._values.token)
 
         try:
@@ -427,10 +428,9 @@ class SonicPipe():
             logs=self._logs,
             daemon=self._daemon,
             client_pipe=self._pipe_client,
-            use_daemon = self._use_daemon,
+            use_daemon=self._use_daemon,
             token=self._values.token)
         command_parser.parse(code)
-
 
     def extract_values_from_port_line(self, portline) -> dict:
 
@@ -443,7 +443,7 @@ class SonicPipe():
             logs=self._logs,
             daemon=self._daemon,
             client_pipe=self._pipe_client,
-            use_daemon = self._use_daemon,
+            use_daemon=self._use_daemon,
             token=self._values.token)
 
         values = {}
