@@ -265,16 +265,13 @@ class SonicPipe():
             else:
                 raise FileNotFoundError
         else:
-            # Linters can be quite lost using this new Python syntax.
-            match user_os:
-                case 'Windows':
-                    # I don't have a Windows Computer to verify
-                    return "C:/Program\\ Files/Sonic\\ Pi/app/server/ruby/bin/daemon.rb"
-                case 'Linux':
-                    return (os.path.expanduser('~') +
-                            '/sonic-pi/app/server/ruby/bin/daemon.rb')
-                case 'Darwin':
-                    return '/Applications/Sonic\\ Pi.app/Contents/Resources/app/server/ruby/bin/daemon.rb'
+            if user_os=='Windows':
+                return "C:/Program\\ Files/Sonic\\ Pi/app/server/ruby/bin/daemon.rb"
+            elif user_os=='Linux':
+                return (os.path.expanduser('~') +
+                '/sonic-pi/app/server/ruby/bin/daemon.rb')
+            else:
+                return '/Applications/Sonic\\ Pi.app/Contents/Resources/app/server/ruby/bin/daemon.rb'
 
     def boot_daemon(self) -> None:
 
