@@ -8,8 +8,7 @@ import subprocess
 import threading
 
 from art import tprint
-from pythonosc import (udp_client, osc_message_builder,
-                       dispatcher, osc_server)
+from pythonosc import (udp_client, osc_message_builder, dispatcher, osc_server)
 from inputimeout import (inputimeout, TimeoutOccurred)
 from typing import Any, List
 
@@ -18,10 +17,10 @@ from platform import system
 from subprocess import PIPE
 from queue import Queue
 
-from Utilities import color
-from History import HistoryItem
-from DaemonConfig import DaemonConfig
-from CommandParsing import CommandParser
+from .Utilities import color
+from .History import HistoryItem
+from .DaemonConfig import DaemonConfig
+from .CommandParsing import CommandParser
 
 
 class SonicPipe():
@@ -410,7 +409,7 @@ class SonicPipe():
             self._daemon_killed_by_user = True
             print("Autosaving on quit!")
             command_parser.parse("save_history")
-            self.stop_all_jobs()
+            command_parser.parse("exit")
             if self._use_daemon:
                 self._daemon.terminate()
             self._exit_banner()

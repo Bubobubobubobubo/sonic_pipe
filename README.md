@@ -1,5 +1,14 @@
 # Sonic Pipe
 
+## TODO list
+
+* Control logs verbosity (less printing)
+* Restore Ableton Link functionality (??)
+* Subfolders for help system
+* Remove unused files
+* Package as CLI for easy installation
+* Make the script available for Windows (??)
+
 ![screenshot](docs/sonic_pipe_screenshot.png)
 
 **This program is still highly unstable/experimental. The program is not yet properly packaged for easy distribution/installation. Use with caution, feel free to jump in and help :).**

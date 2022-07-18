@@ -1,6 +1,6 @@
 #!/usr/local/bin/python3
 # -*- coding: utf-8 -*-
-from main import main
+from . import repl
 
 if __name__ == "__main__":
-    main()
+    repl()

@@ -6,11 +6,11 @@ from os.path import isfile, join
 from pythonosc import (osc_message_builder)
 from rich.console import Console
 from rich.markdown import Markdown
-from random import choice
 from time import strftime
 from queue import Queue
-from History import HistoryItem
 from typing import List
+
+from .History import HistoryItem
 
 class CommandParser():
 
@@ -188,9 +188,3 @@ class CommandParser():
         Dummy debug command
         """
         print("Nothing to debug")
-
-
-if __name__ == "__main__":
-    a = CommandParser()
-    print(a.show_available_cheatsheets())
-
