@@ -60,7 +60,7 @@ class SonicPipe():
 
     def __init__(self, address='127.0.0.1',
                 use_daemon=False,
-                daemon_rb_location: str = None,
+                daemon_rb_location: str=None,
                 repl_mode=False):
 
         ########################################
@@ -68,8 +68,7 @@ class SonicPipe():
         ########################################
 
         try:
-            self._ruby_daemon_path = self.find_daemon_path(
-                    daemon_rb_location)
+            self._ruby_daemon_path = self.find_daemon_path(daemon_rb_location)
         except FileNotFoundError:
             print("Invalid path for daemon.rb file.")
             quit()
