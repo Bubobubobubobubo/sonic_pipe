@@ -7,6 +7,8 @@ import traceback
 import subprocess
 import threading
 
+from setuptools import Command
+
 from art import tprint
 from pythonosc import (udp_client, osc_message_builder, dispatcher, osc_server)
 from inputimeout import (inputimeout, TimeoutOccurred)
@@ -56,8 +58,10 @@ class SonicPipe():
 
     """
 
-    def __init__(self, address='127.0.0.1', use_daemon=False,
-                 daemon_rb_location: str = None, repl_mode=True):
+    def __init__(self, address='127.0.0.1', 
+                use_daemon=False,
+                daemon_rb_location: str = None,
+                repl_mode=False):
 
         ########################################
         # LOCATE DAEMON.RB FILE
@@ -99,7 +103,7 @@ class SonicPipe():
 
             if self._repl_mode:
                 # print some nice ascii art :)
-                self.greeter()
+                self._greeter()
 
         except Exception as e:
             print(f"Couldn't find token or boot: {e}")
@@ -140,15 +144,13 @@ class SonicPipe():
             # We don't need to keep anything alive!
             pass
 
-    def greeter(self):
+    def _greeter(self):
 
         """
         ASCII Art banner displayed when booting in REPL mode.
         """
 
         tprint("Sonic Pipe", font="swan")
-        print(f"Token: {self._values.token} OSC port:\
-                {self._values.gui_listen_to_server}")
         print("See documentation on GitHub :')")
 
     def setup_log_server(self):
@@ -415,11 +417,35 @@ class SonicPipe():
             self._exit_banner()
             quit()
 
+    def pipe(self, code: str) -> None:
+
+        """
+        Send Code to a running instance of Sonic Pi without using the REPL
+        """
+
+        command_parser = CommandParser(
+            history=self._history,
+            logs=self._logs,
+            daemon=self._daemon,
+            client_pipe=self._pipe_client,
+            use_daemon = self._use_daemon,
+            token=self._values.token)
+        command_parser.parse(code)
+
+
     def extract_values_from_port_line(self, portline):
 
         """
         Grab the message received from spider.log and interpret data.
         """
+
+        command_parser = CommandParser(
+            history=self._history,
+            logs=self._logs,
+            daemon=self._daemon,
+            client_pipe=self._pipe_client,
+            use_daemon = self._use_daemon,
+            token=self._values.token)
 
         values = {}
 

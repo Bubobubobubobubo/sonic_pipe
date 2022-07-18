@@ -3,14 +3,16 @@
 import os
 from os import listdir
 from os.path import isfile, join
-from pythonosc import (osc_message_builder)
+from queue import Queue
+from time import strftime
+from typing import List, Union
+
+from pythonosc import osc_message_builder
 from rich.console import Console
 from rich.markdown import Markdown
-from time import strftime
-from queue import Queue
-from typing import List
 
 from .History import HistoryItem
+
 
 class CommandParser():
 
@@ -44,6 +46,9 @@ class CommandParser():
         self._use_daemon = use_daemon
         self._token = token
         self._daemon = daemon
+        self._cheat_path = os.path.dirname(__file__) + "/cheatsheets/"
+        self._user_cheat_path = self._home_dir + "/.sonic-pi/sonic-pipe-help/"
+
 
     def parse(self, text_to_parse):
 
@@ -78,9 +83,17 @@ class CommandParser():
         """
         Attempt to print the help file requested by user in Markdown format.
         """
-        cheat_path = os.path.dirname(__file__) + "/cheatsheets/"
-        with open(cheat_path + file_to_open + '.md', "r") as markfile:
-            self._console.print(Markdown(markfile.read()))
+        try:
+            with open(self._cheat_path + file_to_open + '.md', "r") as markfile:
+                self._console.print(Markdown(markfile.read()))
+        except Exception:
+            pass
+
+        try:
+            with open(self._user_cheat_path + file_to_open + '.md', "r") as markfile:
+                self._console.print(Markdown(markfile.read()))
+        except Exception:
+            pass
 
     def _forward_to_sonic_pi(self, text_to_parse):
         message = osc_message_builder.OscMessageBuilder("/run-code")
@@ -140,24 +153,40 @@ class CommandParser():
 
         """
         Returns a Markdown list of available cheasheets
-        from the cheatsheets directory.
+        from the cheatsheets directories.
         """
-        cheat_path = os.path.dirname(__file__) + "/cheatsheets/"
-        # cheat_path = "./cheatsheets/"
-        files = [f for f in listdir(cheat_path) if isfile(
-            join(cheat_path, f))]
-        files = list(map(lambda x: x.replace(".md", ""), files))
-        files.sort()
+
+        def get_file_list(folder_path) -> List[str]:
+            if os.path.exists(folder_path):
+                files = [f for f in listdir(folder_path) if isfile(join(folder_path, f))]
+                files = list(map(lambda x: x.replace(".md", ""), files))
+                files.sort()
+                return files
+            else:
+                return []
+
+        user_cheat_path = self._home_dir + "/.sonic-pi/sonic-pipe-help/"
+        default_available_files = get_file_list(self._cheat_path)
+        user_available_files = get_file_list(self._user_cheat_path)
 
         markdown_page = "# Available Cheatsheets\n\n"
-        for file in files:
+
+        # List of default files
+        markdown_page += "## Default help files\n\n"
+        for file in default_available_files:
             markdown_page += f"* {file}\n"
+
+        # List of user files
+        markdown_page += "## User provided help files\n\n"
+        for file in user_available_files:
+            markdown_page += f"* {file}\n"
+
+        # General help
         markdown_page += (
                 "\nInvoke the help command followed by a file name.\n")
         markdown_page += (
                 "\nEx: help midi, help synths.\n")
         self._console.print(Markdown(markdown_page))
-
 
     def _stop_all_jobs(self):
 
