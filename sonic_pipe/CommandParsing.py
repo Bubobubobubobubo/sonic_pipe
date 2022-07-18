@@ -78,7 +78,7 @@ class CommandParser():
         """
         Attempt to print the help file requested by user in Markdown format.
         """
-        cheat_path = "./cheatsheets/"
+        cheat_path = os.path.dirname(__file__) + "/cheatsheets/"
         with open(cheat_path + file_to_open + '.md', "r") as markfile:
             self._console.print(Markdown(markfile.read()))
 
@@ -142,7 +142,8 @@ class CommandParser():
         Returns a Markdown list of available cheasheets
         from the cheatsheets directory.
         """
-        cheat_path = "./cheatsheets/"
+        cheat_path = os.path.dirname(__file__) + "/cheatsheets/"
+        # cheat_path = "./cheatsheets/"
         files = [f for f in listdir(cheat_path) if isfile(
             join(cheat_path, f))]
         files = list(map(lambda x: x.replace(".md", ""), files))
