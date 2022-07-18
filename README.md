@@ -4,7 +4,7 @@
 
 **This program is still highly unstable/experimental. The program is not yet properly packaged for easy distribution/installation. Use with caution, feel free to jump in and help :).**
 
-I couldn't wait for a new version of [sonic-pi-cli](https://github.com/Widdershin/sonic-pi-cli) or [sonic-pi-tool](https://github.com/lpil/sonic-pi-tool) following the release of Sonic Pi 4.0 so I quickly hacked a script that allows strings to be piped from the command line to the Sonic Pi Server. The script is a proof of concept based on information gathered from the [Sonic Pi Forum](https://in-thread.sonic-pi.net/). Feel free to change anything and to push changes to the repo :). I don't pretend to replace or do better than the tools mentioned above. Use them if you can once they will be updated!
+I couldn't wait for a new version of [sonic-pi-cli](https://github.com/Widdershin/sonic-pi-cli) or [sonic-pi-tool](https://github.com/lpil/sonic-pi-tool) following the release of Sonic Pi 4.0 so I quickly hacked a CLI tool that allows strings to be piped from the command line to the Sonic Pi Server. The script is a proof of concept based on information gathered from the [Sonic Pi Forum](https://in-thread.sonic-pi.net/). Feel free to change anything and to push changes to the repo :). I don't pretend to replace or do better than the tools mentioned above. Use them if you can once they will be updated!
 
 ## TODO list
 
@@ -12,33 +12,29 @@ I couldn't wait for a new version of [sonic-pi-cli](https://github.com/Widdershi
 * Restore Ableton Link functionality (??)
 * Subfolders for help system
 * Remove unused files
-* Package as CLI for easy installation
 * Make the script available for Windows (??)
-
 
 ## Usage
 
-The script requires **python-osc** and the **blessings** library. Once installed, simply run the main script `python3 sonic_pipe` or directly `python3 sonic_pipe/main.py` to start the barebones REPL. As such, you will notice that the REPL is not that useful!
+* Install the tool using the `setup.py` file.
+  1. `git clone https://github.com/Bubobubobubobubo/sonic_pipe`
+  2. `cd sonic_pipe`
+  3. `pip install -e .` or `pip3 install -e .` depending on your Python installation.
 
-For now (things will evolve for sure), the script was designed to be used along a *slime* session using Vim/Neovim. Open a new terminal, start the script and pipe your code to the REPL with just a keypress!
+Required dependencies will be automatically installed. A CLI tool will be added to your path: `sonic-pipe`. In forward versions, you will also be able to import SonicPipe as a library for usage in your own Python programs.
 
-Basic commands are available:
-* **stop** : stop Sonic Pi Server.
-* **quit**/**exit** : exit the script.
-* **history** : see below.
-* **purge-history** : delete history.
+In order to use Sonic Pipe, you will need a tool able to pipe commands from a terminal buffer to another terminal buffer. I recommend using Vim/Neovim [Slime plugin](https://github.com/jpalardy/vim-slime). Very easy to setup and straightforward to use.
 
-## Session History
+## Commands
 
-You can save a snapshot of the ongoing session by typing `save_history`. You can preview the current session history by sending `history` to the REPL:
-* `history`: print the whole history.
-* `history x`: print the xth command entered since start.
-* `history x y`: print history from x to y.
+Some basic commands are available:
 
-A new file will be written in your `.sonic-pi/sonic_pipe_sessions/` folder. Sessions are named using the current time. Sessions are saved by default on exit, using the `[date]-endofsession` tag. This will ensure that you always keep an history of your code during improvisations. The `purge-history` command can be used to purge the `sonic_pipe_sessions` folder.
+* **stop** : stop currently running code.
+* **exit** : exit the REPL/CLI tool.
+* **help** : display help files.
 
-# TODO
+Sonic Pipe includes an auto-save tool for your Sonic Pipe sessions. Sessions will be automatically saved whatever happens as `.rb` files located at `$HOME/.sonic-pi/sonic-pipe-sessions/`. Files are named in accordance with the current local time of your computer for easy retrieval.
 
-* Package as a CLI.
-* Allow one-shot usage from the command-line.
-
+* **history** : print current session history.
+* **purge-history** : delete all files from history.
+* **save-history** : save the current Sonic Pipe session.
