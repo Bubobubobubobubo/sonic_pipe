@@ -1,4 +1,4 @@
-# Sonic Pipe
+# Sonic Pipe (Sonic Pi from the command-line)
 
 ![screenshot](docs/sonic_pipe_screenshot.png)
 
