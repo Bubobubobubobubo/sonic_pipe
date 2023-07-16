@@ -29,7 +29,7 @@ Currently not tested and unsupported. However, this should work already! Please 
 
 ### Linux
 
-Please locate the `daemon.rb` file that comes installed with Sonic Pi. This file should be located in the `/server/bin` folder) not far from the actual `sonic-pi` binary. The path to `daemon.rb` can be given to `sonic-pipe` using the `--daemon-path` flag when executing the CLI.
+Please locate the `daemon.rb` file that comes installed with Sonic Pi. This file should be located in the `/server/bin` folder) not far from the actual `sonic-pi` binary. The path to `daemon.rb` can be given to `sonic-pipe` using the `--daemon_path` flag when executing the CLI.
 
 ### MacOS
 
