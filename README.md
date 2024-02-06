@@ -2,7 +2,7 @@
 
 ![screenshot](docs/sonic_pipe_screenshot.png)
 
-**This program is still highly unstable/experimental. Feedback would be much appreciated. Use with caution, feel free to jump in and help :).**
+**This program is highly unstable/experimental. Use with caution, feel free to jump in and help :). I built it one or two years ago and never touched it again.**
 
 I couldn't wait for a new version of [sonic-pi-cli](https://github.com/Widdershin/sonic-pi-cli) or [sonic-pi-tool](https://github.com/lpil/sonic-pi-tool) following the release of Sonic Pi 4.0 so I quickly hacked a CLI tool that allows strings to be piped from the command line to the Sonic Pi Server. The script is a proof of concept based on information gathered from the [Sonic Pi Forum](https://in-thread.sonic-pi.net/). Feel free to change anything and to push changes to the repo :). I don't pretend to replace or do better than the tools mentioned above. Use them if you can once they will be updated!
 
